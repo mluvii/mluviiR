@@ -14,12 +14,14 @@ setMethod("Compare", signature(e1 = "Duration", e2 = "numeric"),
 # Fetch last month's sessions
 
 today <- Sys.Date()
-data <- fromJSON(content(GET('https://app.mluvii.com/api/v1/Sessions', client_token,
-                             query = list(
-                               created.min = floor_date(today, "month") - months(1),
-                               created.max = floor_date(today, "month"),
-                               limit = "5000")),
-                         as="text"))
+rawdata <- content(GET('https://app.mluvii.com/api/v1/Sessions', client_token,
+                       query = list(
+                         created.min = floor_date(today, "month") - months(1),
+                         created.max = floor_date(today, "month"),
+                         limit = "5000")),
+                   as="text")
+
+data <- fromJSON(rawdata, flatten = TRUE)
 
 # Median waiting time per day, hour and widget
 
@@ -55,3 +57,21 @@ ggplot(waited_widget_dowhour, aes(x = hour, y = waited, fill = widget)) +
   scale_x_discrete(labels = function (x) {
     sprintf("%sh", x)
   })
+
+# Client browsers
+
+browsers <- data %>%
+  select(guest.browser) %>%
+  group_by(guest.browser) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  arrange(desc(count)) %>%
+  mutate(freq = count / sum(count), browser = factor(guest.browser, levels = rev(guest.browser)))
+
+ggplot(browsers, aes(x = "", y = freq, fill = browser)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(browser, "\n", scales::percent(round(freq, 3)))),
+            position = position_stack(vjust = 0.5)) +
+  coord_polar("y") +
+  theme_void() +
+  guides(fill = guide_legend(reverse = TRUE))
