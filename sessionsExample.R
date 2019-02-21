@@ -35,3 +35,23 @@ ggplot(waited_widget_dayhour, aes(entered, y = median_waited, group = widget, co
   scale_y_continuous(labels = function (x) {
     gsub(" \\(", "\n(", duration(x))
   })
+
+# Waiting time per day of week, hour of day and widget
+
+waited_widget_dowhour <- data %>%
+  select(widget, enteredQueue, waited) %>%
+  mutate(
+    weekday = factor(weekdays(ymd_hms(enteredQueue)), levels = weekdays(as.Date('2019-01-07')+0:6)),
+    hour = factor(hour(ymd_hms(enteredQueue))),
+    waited = duration(waited))
+
+ggplot(waited_widget_dowhour, aes(x = hour, y = waited, fill = widget)) +
+  geom_boxplot(outlier.shape = NA) +
+  facet_grid(vars(widget), vars(weekday)) +
+  coord_cartesian(ylim = boxplot.stats(waited_widget_dowhour$waited)$stats[c(1, 5)]*1.05) +
+  scale_y_continuous(labels = function (x) {
+    gsub(" \\(", "\n(", duration(x))
+  }) +
+  scale_x_discrete(labels = function (x) {
+    sprintf("%sh", x)
+  })
