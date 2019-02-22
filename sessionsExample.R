@@ -1,4 +1,4 @@
-# To obtain client_token, see clientToken.R
+# To obtain client_token, see loginApiKey.R or loginOOB.R
 
 library(jsonlite)
 library(lubridate)
