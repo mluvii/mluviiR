@@ -23,19 +23,22 @@ rawdata <- content(GET('https://app.mluvii.com/api/v1/Sessions', client_token,
 
 data <- fromJSON(rawdata, flatten = TRUE)
 
-# Median waiting time per day, hour and widget
+# Median waiting time per day and widget
 
-waited_widget_dayhour <- data %>%
+waited_widget_day <- data %>%
   select(widget, enteredQueue, waited) %>%
-  mutate(entered = round_date(ymd_hms(enteredQueue), unit="hour")) %>%
+  mutate(entered = round_date(ymd_hms(enteredQueue), unit="day")) %>%
   mutate(waited = duration(waited)) %>%
   group_by(widget, entered) %>%
   summarise(median_waited = median(waited, na.rm = TRUE))
 
-ggplot(waited_widget_dayhour, aes(entered, y = median_waited, group = widget, colour = widget)) +
+ggplot(waited_widget_day, aes(entered, y = median_waited, group = widget, colour = widget)) +
   geom_point() + geom_line() +
-  scale_y_continuous(labels = function (x) {
+  scale_y_log10(labels = function (x) {
     gsub(" \\(", "\n(", duration(x))
+  }) +
+  scale_x_datetime(date_breaks = "1 day", labels = function (x) {
+    sprintf("%i.\n%i.", day(x), month(x))
   })
 
 # Waiting time per day of week, hour of day and widget
@@ -50,8 +53,7 @@ waited_widget_dowhour <- data %>%
 ggplot(waited_widget_dowhour, aes(x = hour, y = waited, fill = widget)) +
   geom_boxplot(outlier.shape = NA) +
   facet_grid(vars(widget), vars(weekday)) +
-  coord_cartesian(ylim = boxplot.stats(waited_widget_dowhour$waited)$stats[c(1, 5)]*1.05) +
-  scale_y_continuous(labels = function (x) {
+  scale_y_log10(labels = function (x) {
     gsub(" \\(", "\n(", duration(x))
   }) +
   scale_x_discrete(labels = function (x) {
